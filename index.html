@@ -1,0 +1,823 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Metabox Basic Configurator</title>
+    <meta
+      name="description"
+      content="Interactive Metabox configurator demo with Vue 3: choose products, environments, materials, and export renders/PDF."
+    />
+
+    <style>
+      /* Critical Layout CSS - DO NOT REMOVE */
+
+      /* Box-sizing reset for predictable dimensions */
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      /* Body reset - prevents scrollbars and margins */
+      body {
+        margin: 0;
+        overflow: hidden;
+        height: 100vh;
+        font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+        background-color: #1a1a2e;
+      }
+
+      /* Container with absolute positioning prevents layout shifts */
+      .container {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+
+      /* Embed container fills entire viewport */
+      #embed3DSource {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #1a1a2e;
+      }
+
+      /* ─── Configure Button ─── */
+      .configure-btn {
+        position: fixed;
+        bottom: 24px;
+        left: 24px;
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 20px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 24px;
+        background: rgba(30, 40, 55, 0.9);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        color: rgba(255, 255, 255, 0.85);
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.2s, color 0.2s, border-color 0.2s;
+        font-family: inherit;
+      }
+
+      .configure-btn:hover {
+        background: rgba(40, 52, 72, 0.95);
+        color: #fff;
+      }
+
+      .configure-btn.active {
+        color: #4c9ffe;
+        border-color: rgba(76, 159, 254, 0.3);
+      }
+
+      .configure-btn svg {
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+      }
+
+      /* ─── Floating Panel ─── */
+      .config-panel {
+        position: fixed;
+        bottom: 72px;
+        left: 24px;
+        z-index: 99;
+        width: 360px;
+        max-height: calc(100vh - 120px);
+        display: flex;
+        flex-direction: column;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        background: rgba(22, 28, 40, 0.92);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        color: #fff;
+        overflow: hidden;
+        transform-origin: bottom left;
+        transition: opacity 0.25s ease, transform 0.25s ease;
+      }
+
+      .config-panel.panel-hidden {
+        opacity: 0;
+        transform: translateY(12px) scale(0.97);
+        pointer-events: none;
+      }
+
+      .config-panel.panel-visible {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+
+      /* Panel header */
+      .panel-header {
+        padding: 18px 20px 14px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        flex-shrink: 0;
+      }
+
+      .panel-header-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .panel-title {
+        font-size: 16px;
+        font-weight: 600;
+        margin: 0;
+        color: #fff;
+      }
+
+      .panel-subtitle {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.45);
+        margin: 4px 0 0;
+      }
+
+      .showcase-btn {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 14px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 16px;
+        background: transparent;
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.15s, color 0.15s;
+        font-family: inherit;
+      }
+
+      .showcase-btn:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: #fff;
+      }
+
+      .showcase-btn.playing {
+        color: #4c9ffe;
+        border-color: rgba(76, 159, 254, 0.3);
+      }
+
+      .showcase-btn svg {
+        width: 14px;
+        height: 14px;
+      }
+
+      /* Scrollable slots area */
+      .panel-slots {
+        flex: 1;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+      }
+
+      .panel-slots::-webkit-scrollbar {
+        width: 4px;
+      }
+
+      .panel-slots::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      .panel-slots::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.12);
+        border-radius: 2px;
+      }
+
+      /* ─── Accordion Slot ─── */
+      .slot-row {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      }
+
+      .slot-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 20px;
+        cursor: pointer;
+        transition: background 0.15s;
+        user-select: none;
+      }
+
+      .slot-header:hover {
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .slot-thumb {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        object-fit: cover;
+        flex-shrink: 0;
+        background: rgba(255, 255, 255, 0.06);
+      }
+
+      .slot-info {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .slot-label {
+        font-size: 13px;
+        font-weight: 500;
+        color: rgba(255, 255, 255, 0.9);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .slot-material-name {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.4);
+        margin-top: 2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .slot-chevron {
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+        color: rgba(255, 255, 255, 0.3);
+        transition: transform 0.2s ease;
+      }
+
+      .slot-chevron.expanded {
+        transform: rotate(180deg);
+      }
+
+      /* Expanded material grid */
+      .slot-materials {
+        padding: 4px 20px 16px;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+        gap: 10px;
+      }
+
+      .mat-swatch {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        padding: 6px;
+        border: 2px solid transparent;
+        border-radius: 10px;
+        background: transparent;
+        cursor: pointer;
+        transition: border-color 0.15s, background 0.15s;
+        font-family: inherit;
+        color: rgba(255, 255, 255, 0.7);
+      }
+
+      .mat-swatch:hover {
+        background: rgba(255, 255, 255, 0.06);
+      }
+
+      .mat-swatch.active {
+        border-color: #4c9ffe;
+        background: rgba(76, 159, 254, 0.08);
+      }
+
+      .mat-swatch img {
+        width: 48px;
+        height: 48px;
+        border-radius: 8px;
+        object-fit: cover;
+        display: block;
+      }
+
+      .mat-swatch-placeholder {
+        width: 48px;
+        height: 48px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      .mat-swatch span {
+        font-size: 10px;
+        text-align: center;
+        line-height: 1.2;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      /* ─── Summary Section ─── */
+      .panel-summary {
+        border-top: 1px solid rgba(255, 255, 255, 0.06);
+        padding: 14px 20px;
+        flex-shrink: 0;
+      }
+
+      .summary-title {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: rgba(255, 255, 255, 0.35);
+        margin: 0 0 8px;
+      }
+
+      .summary-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        padding: 3px 0;
+      }
+
+      .summary-slot {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.5);
+      }
+
+      .summary-material {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.8);
+        font-weight: 500;
+        text-align: right;
+        max-width: 55%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      /* CTA button in panel footer */
+      .panel-cta {
+        padding: 0 20px 16px;
+        flex-shrink: 0;
+      }
+
+      .cta-btn {
+        width: 100%;
+        padding: 10px;
+        border: none;
+        border-radius: 10px;
+        background: #4c9ffe;
+        color: #fff;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.15s;
+        font-family: inherit;
+      }
+
+      .cta-btn:hover {
+        background: #3a8df0;
+      }
+
+      /* Loading state */
+      .loading-overlay {
+        position: fixed;
+        bottom: 24px;
+        left: 24px;
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 20px;
+        border-radius: 24px;
+        background: rgba(30, 40, 55, 0.9);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 14px;
+        font-family: inherit;
+      }
+
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+
+      .spinner {
+        width: 14px;
+        height: 14px;
+        border: 2px solid rgba(255, 255, 255, 0.15);
+        border-top-color: rgba(255, 255, 255, 0.6);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+    </style>
+
+    <!-- Vue 3 import map -->
+    <script type="importmap">
+      {
+        "imports": {
+          "vue": "https://unpkg.com/vue@3/dist/vue.esm-browser.js"
+        }
+      }
+    </script>
+
+    <script type="module">
+      // Import Metabox API from CDN
+      import {
+        integrateMetabox,
+        SetProduct,
+        SetProductMaterial,
+        SetEnvironment,
+        SetEnvironmentMaterial,
+        GetCallToActionInformation,
+        ShowEmbeddedMenu,
+        ShowOverlayInterface,
+        InitShowcase,
+        PlayShowcase,
+        PauseShowcase,
+        StopShowcase,
+      } from 'https://cdn.jsdelivr.net/npm/@3dsource/metabox-front-api@latest/+esm';
+      import { createApp } from 'vue';
+
+      /**
+       * Shim class - manages Metabox API communication
+       * Stores API reference and configurator state
+       * Provides methods to send commands and handle events
+       */
+      class Shim {
+        state = null;
+        ecomConfigurator = null;
+        product = null;
+        products = null;
+        environments = null;
+        productSlots = null;
+        environmentSlots = null;
+        productMaterialsIds = null;
+        api = {};
+
+        /**
+         * Called when API is ready - stores reference and sets up listeners
+         */
+        ready(api, onShowcaseStatusChanged) {
+          this.api = api;
+          this.onShowcaseStatusChanged = onShowcaseStatusChanged;
+          this.addApiEventListeners();
+
+          // Hide default configurator UI since we're providing custom controls
+          this.api.sendCommandToMetabox(new ShowEmbeddedMenu(false));
+          this.api.sendCommandToMetabox(new ShowOverlayInterface(false));
+        }
+
+        /**
+         * Register event listeners for configurator updates
+         */
+        addApiEventListeners() {
+          // Primary event - configurator state updates (products, materials, environment)
+          this.api.addEventListener('configuratorDataUpdated', (data) =>
+            this.updateConfiguratorData(data),
+          );
+
+          // E-commerce data (call-to-action button info)
+          this.api.addEventListener('ecomConfiguratorDataUpdated', (data) => {
+            this.updateEcomConfiguratorData(data);
+          });
+
+          // Showcase status changes
+          this.api.addEventListener('showcaseStatusChanged', (status) => {
+            this.onShowcaseStatusChanged(status);
+          });
+        }
+
+        /**
+         * Update local state from configuratorDataUpdated event
+         * This is the source of truth for UI state
+         */
+        updateConfiguratorData(data) {
+          const {
+            productId,
+            configurator,
+            productMaterialsIds,
+            environmentId,
+            environmentMaterialsIds,
+          } = data;
+
+          this.productMaterialsIds = productMaterialsIds;
+
+          // Wait until we have complete data before updating UI
+          if (
+            !productId ||
+            !configurator ||
+            Object.keys(this.productMaterialsIds).length === 0
+          ) {
+            return;
+          }
+
+          this.state = data;
+          this.products =
+            configurator.products?.map((item) => item.product) || [];
+          this.environments =
+            configurator.environments?.map((item) => item.environment) || [];
+          this.product = this.products.find(
+            (product) => product.id === productId,
+          );
+
+          const environment = this.environments.find(
+            (env) => env.id === environmentId,
+          );
+
+          // Filter to only slots with available materials
+          this.productSlots =
+            this.product?.slots.filter(
+              (slot) => slot.enabledMaterials.length > 0,
+            ) || [];
+          this.environmentSlots = environment?.slots.filter(
+            (slot) => slot.enabledMaterials.length > 0,
+          );
+        }
+
+        updateEcomConfiguratorData(data) {
+          this.ecomConfigurator = data;
+        }
+
+        /**
+         * Command methods - send instructions to the configurator
+         */
+        sendProduct(productId) {
+          this.api.sendCommandToMetabox(new SetProduct(productId));
+        }
+
+        sendEnvironment(environmentId) {
+          this.api.sendCommandToMetabox(new SetEnvironment(environmentId));
+        }
+
+        sendProductMaterial(slotId, materialId) {
+          this.api.sendCommandToMetabox(
+            new SetProductMaterial(slotId, materialId),
+          );
+        }
+
+        sendEnvironmentMaterial(slotId, materialId) {
+          this.api.sendCommandToMetabox(
+            new SetEnvironmentMaterial(slotId, materialId),
+          );
+        }
+
+        getCtaInformation() {
+          this.api.sendCommandToMetabox(new GetCallToActionInformation());
+        }
+      }
+
+      /**
+       * Vue app setup
+       */
+      createApp({
+        data() {
+          return {
+            shim: new Shim(),
+            showcasePlaying: false,
+            panelOpen: false,
+            expandedSlot: null,
+          };
+        },
+        computed: {
+          /**
+           * Get the currently selected material for a given product slot
+           */
+          selectedMaterialMap() {
+            const map = {};
+            if (!this.shim.productSlots || !this.shim.state) return map;
+            const productId = this.shim.state.productId;
+            for (const slot of this.shim.productSlots) {
+              const materialId = this.shim.productMaterialsIds?.[productId]?.[slot.id];
+              if (materialId) {
+                const material = slot.enabledMaterials.find((m) => m.id === materialId);
+                map[slot.id] = material || null;
+              }
+            }
+            return map;
+          },
+        },
+        methods: {
+          togglePanel() {
+            this.panelOpen = !this.panelOpen;
+            // If opening and no slot expanded, expand the first one
+            if (this.panelOpen && this.expandedSlot === null && this.shim.productSlots?.length) {
+              this.expandedSlot = this.shim.productSlots[0].id;
+            }
+          },
+
+          toggleSlot(slotId) {
+            this.expandedSlot = this.expandedSlot === slotId ? null : slotId;
+          },
+
+          selectMaterial(slotId, materialId) {
+            this.shim.sendProductMaterial(slotId, materialId);
+            // Sync matching environment slot (e.g. "Fabric" → "Chairs Fabric")
+            this.syncEnvironmentSlot(slotId, materialId);
+          },
+
+          syncEnvironmentSlot(productSlotId, materialId) {
+            const envSlots = this.shim.environmentSlots;
+            if (!envSlots) return;
+            const productSlot = this.shim.productSlots.find((s) => s.id === productSlotId);
+            if (!productSlot) return;
+            const label = productSlot.label.toLowerCase();
+            const envSlot = envSlots.find((s) =>
+              s.label.toLowerCase().includes(label),
+            );
+            if (!envSlot) return;
+            // Only send if the environment slot has a material with the same ID
+            const match = envSlot.enabledMaterials.find((m) => m.id === materialId);
+            if (match) {
+              this.shim.sendEnvironmentMaterial(envSlot.id, materialId);
+            }
+          },
+
+          isActiveMaterial(slotId, materialId) {
+            const productId = this.shim.state?.productId;
+            return this.shim.productMaterialsIds?.[productId]?.[slotId] === materialId;
+          },
+
+          getSlotThumbnail(slot) {
+            const material = this.selectedMaterialMap[slot.id];
+            return material?.thumbnailList?.[0]?.urlPath || null;
+          },
+
+          getSlotMaterialName(slot) {
+            const material = this.selectedMaterialMap[slot.id];
+            return material?.title || '—';
+          },
+
+          toggleShowcase() {
+            if (this.showcasePlaying) {
+              this.shim.api.sendCommandToMetabox(new StopShowcase());
+              this.showcasePlaying = false;
+            } else {
+              this.shim.api.sendCommandToMetabox(new InitShowcase());
+              this.shim.api.sendCommandToMetabox(new PlayShowcase());
+              this.showcasePlaying = true;
+            }
+          },
+        },
+        mounted() {
+          // Initialize Metabox configurator
+          integrateMetabox(
+            '121b0f3e-5cf5-43c0-bc22-308b4e6d1e89',
+            'embed3DSource',
+            (api) => {
+              // API ready callback - only send commands after this fires
+              this.shim.ready(api, (status) => { this.showcaseStatus = status; });
+            },
+            {
+              standalone: true,
+            },
+          );
+        },
+      }).mount('#app');
+    </script>
+  </head>
+  <body>
+    <noscript>
+      <strong>
+        This app requires JavaScript to run. Please enable JavaScript in your
+        browser.
+      </strong>
+    </noscript>
+
+    <div class="container" id="app">
+      <!-- Full-screen 3D Viewport -->
+      <div id="embed3DSource">
+        <!-- Metabox iframe will be injected here -->
+      </div>
+
+      <!-- Loading indicator (before data arrives) -->
+      <div v-if="!shim.state" class="loading-overlay">
+        <div class="spinner"></div>
+        Loading configurator…
+      </div>
+
+      <!-- Configure Button -->
+      <button
+        v-if="shim.state"
+        type="button"
+        class="configure-btn"
+        :class="{ active: panelOpen }"
+        @click="togglePanel()"
+      >
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <rect x="1" y="1" width="6" height="6" rx="1" />
+          <rect x="9" y="1" width="6" height="6" rx="1" />
+          <rect x="1" y="9" width="6" height="6" rx="1" />
+          <rect x="9" y="9" width="6" height="6" rx="1" />
+        </svg>
+        Configure
+      </button>
+
+      <!-- Floating Materials Panel -->
+      <div
+        v-if="shim.state"
+        class="config-panel"
+        :class="panelOpen ? 'panel-visible' : 'panel-hidden'"
+      >
+        <!-- Header -->
+        <div class="panel-header">
+          <div class="panel-header-top">
+            <div>
+              <h3 class="panel-title">Materials</h3>
+              <p class="panel-subtitle">{{ shim.product?.title }}</p>
+            </div>
+            <button
+              type="button"
+              class="showcase-btn"
+              :class="{ playing: showcasePlaying }"
+              @click="toggleShowcase()"
+            >
+              <svg v-if="!showcasePlaying" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M4 2.5a.5.5 0 0 1 .776-.416l8 5.333a.5.5 0 0 1 0 .833l-8 5.333A.5.5 0 0 1 4 13.167V2.5z"/>
+              </svg>
+              <svg v-else viewBox="0 0 16 16" fill="currentColor">
+                <rect x="3" y="2" width="4" height="12" rx="1"/>
+                <rect x="9" y="2" width="4" height="12" rx="1"/>
+              </svg>
+              {{ showcasePlaying ? 'Stop' : 'Showcase' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Accordion Slots -->
+        <div class="panel-slots">
+          <div
+            v-for="slot in shim.productSlots"
+            :key="slot.id"
+            class="slot-row"
+          >
+            <!-- Collapsed header -->
+            <div class="slot-header" @click="toggleSlot(slot.id)">
+              <img
+                v-if="getSlotThumbnail(slot)"
+                class="slot-thumb"
+                :src="getSlotThumbnail(slot)"
+                :alt="getSlotMaterialName(slot)"
+              />
+              <div v-else class="slot-thumb"></div>
+              <div class="slot-info">
+                <div class="slot-label">{{ slot.label }}</div>
+                <div class="slot-material-name">{{ getSlotMaterialName(slot) }}</div>
+              </div>
+              <svg
+                class="slot-chevron"
+                :class="{ expanded: expandedSlot === slot.id }"
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M4 6l4 4 4-4" />
+              </svg>
+            </div>
+
+            <!-- Expanded material grid -->
+            <div v-if="expandedSlot === slot.id" class="slot-materials">
+              <button
+                type="button"
+                v-for="material in slot.enabledMaterials"
+                :key="material.id"
+                class="mat-swatch"
+                :class="{ active: isActiveMaterial(slot.id, material.id) }"
+                @click="selectMaterial(slot.id, material.id)"
+              >
+                <img
+                  v-if="material.thumbnailList?.length"
+                  :src="material.thumbnailList[0].urlPath"
+                  :alt="material.title"
+                />
+                <div v-else class="mat-swatch-placeholder"></div>
+                <span>{{ material.title }}</span>
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Summary Section -->
+        <div v-if="shim.productSlots?.length" class="panel-summary">
+          <p class="summary-title">Summary</p>
+          <div
+            v-for="slot in shim.productSlots"
+            :key="'sum-' + slot.id"
+            class="summary-row"
+          >
+            <span class="summary-slot">{{ slot.label }}</span>
+            <span class="summary-material">{{ getSlotMaterialName(slot) }}</span>
+          </div>
+        </div>
+
+        <!-- CTA Button -->
+        <div v-if="shim.ecomConfigurator?.cta?.enabled" class="panel-cta">
+          <button type="button" class="cta-btn" @click="shim.getCtaInformation()">
+            {{ shim.ecomConfigurator?.cta?.label }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
