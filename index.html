@@ -489,9 +489,14 @@
           transition: bottom 0.3s ease, background 0.2s, color 0.2s, border-color 0.2s;
         }
 
-        /* Shrink viewport to top half when panel is open */
+        /* Shift viewport up so product stays visible above the sheet — no resize, no re-render */
         #embed3DSource.viewport-shifted {
-          height: 50vh;
+          transform: translateY(-25vh);
+          transition: transform 0.3s ease;
+        }
+
+        #embed3DSource {
+          transition: transform 0.3s ease;
         }
 
         .loading-overlay {
