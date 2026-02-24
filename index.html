@@ -314,45 +314,6 @@
         white-space: nowrap;
       }
 
-      /* ─── Summary Section ─── */
-      .panel-summary {
-        border-top: 1px solid rgba(255, 255, 255, 0.06);
-        padding: 14px 20px;
-        flex-shrink: 0;
-      }
-
-      .summary-title {
-        font-size: 11px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        color: rgba(255, 255, 255, 0.35);
-        margin: 0 0 8px;
-      }
-
-      .summary-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: baseline;
-        padding: 3px 0;
-      }
-
-      .summary-slot {
-        font-size: 12px;
-        color: rgba(255, 255, 255, 0.5);
-      }
-
-      .summary-material {
-        font-size: 12px;
-        color: rgba(255, 255, 255, 0.8);
-        font-weight: 500;
-        text-align: right;
-        max-width: 55%;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
       /* CTA button in panel footer */
       .panel-cta {
         padding: 0 20px 16px;
@@ -740,7 +701,12 @@
 
           formatName(title) {
             if (!title) return '—';
-            return title.replace(/^ED[_\s]+/i, '').replace(/_/g, ' ');
+            return title
+              .replace(/^[\d_]+/, '')    // strip leading numbers/underscores
+              .replace(/^ED[_\s]+/i, '') // strip ED_ prefix
+              .replace(/_bp$/i, '')      // strip _bp suffix
+              .replace(/_/g, ' ')        // underscores to spaces
+              .trim();
           },
 
           getSlotMaterialName(slot) {
@@ -834,7 +800,7 @@
         <!-- Header -->
         <div class="panel-header">
           <h3 class="panel-title">Materials</h3>
-          <p class="panel-subtitle">{{ shim.product?.title }}</p>
+          <p class="panel-subtitle">{{ formatName(shim.product?.title) }}</p>
         </div>
 
         <!-- Accordion Slots -->
@@ -894,18 +860,6 @@
 
         </div>
 
-        <!-- Summary Section -->
-        <div v-if="shim.productSlots?.length" class="panel-summary">
-          <p class="summary-title">Summary</p>
-          <div
-            v-for="slot in shim.productSlots"
-            :key="'sum-' + slot.id"
-            class="summary-row"
-          >
-            <span class="summary-slot">{{ slot.label }}</span>
-            <span class="summary-material">{{ getSlotMaterialName(slot) }}</span>
-          </div>
-        </div>
 
         <!-- CTA Button -->
         <div v-if="shim.ecomConfigurator?.cta?.enabled" class="panel-cta">
