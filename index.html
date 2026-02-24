@@ -151,15 +151,10 @@
 
       /* Panel header */
       .panel-header {
-        padding: 18px 20px 14px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-        flex-shrink: 0;
-      }
-
-      .panel-header-row {
+        padding: 10px 12px 6px;
         display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
+        justify-content: flex-end;
+        flex-shrink: 0;
       }
 
       .panel-close {
@@ -833,19 +828,13 @@
         class="config-panel"
         :class="panelOpen ? 'panel-visible' : 'panel-hidden'"
       >
-        <!-- Header -->
+        <!-- Close button -->
         <div class="panel-header">
-          <div class="panel-header-row">
-            <div>
-              <h3 class="panel-title">Materials</h3>
-              <p class="panel-subtitle">{{ formatName(shim.product?.title) }}</p>
-            </div>
-            <button type="button" class="panel-close" @click="togglePanel()">
-              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                <path d="M4 4l8 8M12 4l-8 8" />
-              </svg>
-            </button>
-          </div>
+          <button type="button" class="panel-close" @click="togglePanel()">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <path d="M4 4l8 8M12 4l-8 8" />
+            </svg>
+          </button>
         </div>
 
         <!-- Accordion Slots -->
